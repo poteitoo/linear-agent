@@ -8,19 +8,24 @@ import {
 
 const slackClient = new WebClient(env.SLACK_TOKEN);
 
-function parseSlackUrl(url: string): { channelName: string; threadTs?: string } {
+function parseSlackUrl(url: string): {
+  channelName: string;
+  threadTs?: string;
+} {
   // Slack URL format: https://workspace.slack.com/archives/CHANNEL_ID/pTIMESTAMP
   // or https://workspace.slack.com/archives/CHANNEL_NAME/pTIMESTAMP
-  const match = url.match(/\/archives\/([^\/]+)(?:\/p(\d+))?/);
+  const match = url.match(/\/archives\/([^/]+)(?:\/p(\d+))?/);
   if (!match) {
     throw new Error(`Invalid Slack URL format: ${url}`);
   }
 
   const channelId = match[1];
   const timestamp = match[2];
-  
+
   // Convert timestamp format: p1234567890123456 -> 1234567890.123456
-  const threadTs = timestamp ? `${timestamp.slice(0, 10)}.${timestamp.slice(10)}` : undefined;
+  const threadTs = timestamp
+    ? `${timestamp.slice(0, 10)}.${timestamp.slice(10)}`
+    : undefined;
 
   return {
     channelName: channelId,
@@ -35,9 +40,9 @@ export const slackTool = createTool({
   outputSchema: slackToolOutputSchema,
   execute: async ({ context }) => {
     const { slackUrl, message } = context;
-    
+
     const { channelName, threadTs } = parseSlackUrl(slackUrl);
-    
+
     const response = await sendSlackMessage(
       channelName,
       threadTs || "",

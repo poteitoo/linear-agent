@@ -9,17 +9,17 @@ import {
   fetchTriageStepOutputSchema,
   linearTriageWorkflowInputSchema,
   linearTriageWorkflowOutputSchema,
+  sendSlackQuestionStepInputSchema,
+  sendSlackQuestionStepOutputSchema,
   suggestNextActionsStepInputSchema,
   suggestNextActionsStepOutputSchema,
   waitForHumanApproveStepInputSchema,
   waitForHumanApproveStepOutputSchema,
   waitForHumanApproveStepResumeSchema,
-  sendSlackQuestionStepInputSchema,
-  sendSlackQuestionStepOutputSchema,
 } from "../../schema/workflow-steps";
 import { linearTool } from "../tools/linear-tool";
-import { writeFilesTool } from "../tools/write-files";
 import { slackTool } from "../tools/slack-tool";
+import { writeFilesTool } from "../tools/write-files";
 
 const fetchTriageStep = createStep({
   id: "fetch-triage-from-linear",
@@ -137,36 +137,41 @@ const sendSlackQuestionStep = createStep({
       };
     }
 
-    const questionsWithActions = actionsWithQuestions
-      .flatMap((action) => 
+    const questionsWithActions = actionsWithQuestions.flatMap(
+      (action) =>
         action.questions?.map((question) => ({
           question,
-          slackUrl: action.slackUrl
-        })) || []
-      );
+          slackUrl: action.slackUrl,
+        })) || [],
+    );
 
     const responses = await Promise.all(
-      questionsWithActions.filter(({ question }) => question?.necessity && question?.necessity > 3).map(({ question, slackUrl }) => {
-        const message = `質問があります: ${question?.content}
+      questionsWithActions
+        .filter(
+          ({ question }) => question?.necessity && question?.necessity > 3,
+        )
+        .map(({ question, slackUrl }) => {
+          const message = `質問があります: ${question?.content}
 宛先: ${question?.toRole}${question?.toName ? ` (${question?.toName})` : ""}
 必要度: ${question?.necessity}/5
 `;
-        // TEST HARDCODE TO AVOID SPAM
-        slackUrl = "https://medimo-pleap.slack.com/archives/C06DEFWUSNM/p1757140310736399"
+          // TEST HARDCODE TO AVOID SPAM
+          slackUrl =
+            "https://medimo-pleap.slack.com/archives/C06DEFWUSNM/p1757140310736399";
 
-        if (slackUrl){
-          return slackTool.execute({
-            context: { slackUrl, message },
-            runtimeContext,
-            tracingContext,
-          });
-        }
-        return {
-          ok: false,
-          slackUrl: "",
-          ts: "",
-        }
-      })
+          if (slackUrl) {
+            return slackTool.execute({
+              context: { slackUrl, message },
+              runtimeContext,
+              tracingContext,
+            });
+          }
+          return {
+            ok: false,
+            slackUrl: "",
+            ts: "",
+          };
+        }),
     );
 
     return {
