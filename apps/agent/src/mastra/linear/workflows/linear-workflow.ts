@@ -101,14 +101,19 @@ const waitForHumanApproveOrFixStep = createStep({
   resumeSchema: waitForHumanApproveStepResumeSchema,
   outputSchema: waitForHumanApproveStepOutputSchema,
   execute: async ({ inputData, resumeData, suspend }) => {
-    const nextActions = inputData.nextActions;
+    const { nextActions, writtenFiles } = inputData;
     const { review } = resumeData ?? {};
+
+    if (writtenFiles.writtenFiles.length === 0) {
+      throw new Error("出力されたファイルはありません");
+    }
+    const writtenFile = writtenFiles.writtenFiles[0];
 
     if (!review) {
       return await suspend({});
     }
 
-    return { nextActions };
+    return { nextActions, writtenFile };
   },
 });
 
