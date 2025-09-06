@@ -1,8 +1,11 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
+import prettier from "prettier";
 import { z } from "zod";
 import { ZActionProposal } from "../../prompts/create-next-action";
+import { writeFileOutputSchema } from "../../prompts/write-files";
 import { linearIssueSchema } from "../../schema/linear-issue";
 import { linearTool } from "../tools/linear-tool";
+import { writeFilesTool } from "../tools/write-files";
 
 const fetchTriageStep = createStep({
   id: "fetch-triage-from-linear",
@@ -23,7 +26,7 @@ const fetchTriageStep = createStep({
   },
 });
 
-const suggestActionsStep = createStep({
+const suggesNextActionsStep = createStep({
   id: "suggest-next-actions",
   description: "トリアージチケットから次のアクション3つを提案する",
   inputSchema: z.object({ issues: z.array(linearIssueSchema) }),
@@ -53,6 +56,63 @@ const suggestActionsStep = createStep({
   },
 });
 
+const exportTempFileForHumanReviewStep = createStep({
+  id: "export-tempfile-for-human-review",
+  description: "ユーザーの確認があるまで一時停止する",
+  inputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
+  resumeSchema: z.object({
+    review: z.enum(["approved", "fixed"]),
+  }),
+  outputSchema: z.object({
+    nextActions: z.array(ZActionProposal),
+    writtenFiles: writeFileOutputSchema,
+  }),
+  execute: async ({ inputData, runtimeContext, tracingContext }) => {
+    const nextActions = inputData.nextActions;
+    const writtenFiles = await writeFilesTool.execute({
+      context: {
+        baseDirectory: "../../",
+        createDirectories: true,
+        files: [
+          {
+            path: "wait-for-human-review.json",
+            content: await prettier.format(JSON.stringify(inputData), {
+              parser: "json-stringify",
+            }),
+          },
+        ],
+      },
+      runtimeContext,
+      tracingContext,
+    });
+
+    return { nextActions, writtenFiles };
+  },
+});
+
+const waitForHumanApproveOrFixStep = createStep({
+  id: "wait-for-human-approve-or-fix-step",
+  description: "ユーザーの確認があるまで一時停止する",
+  inputSchema: z.object({
+    nextActions: z.array(ZActionProposal),
+    writtenFiles: writeFileOutputSchema,
+  }),
+  resumeSchema: z.object({
+    review: z.enum(["approved", "fixed"]),
+  }),
+  outputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
+  execute: async ({ inputData, resumeData, suspend }) => {
+    const nextActions = inputData.nextActions;
+    const { review } = resumeData ?? {};
+
+    if (!review) {
+      return await suspend({});
+    }
+
+    return { nextActions };
+  },
+});
+
 export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
@@ -77,5 +137,7 @@ export const linearTriageWorkflow = createWorkflow({
   }),
 })
   .then(fetchTriageStep)
-  .then(suggestActionsStep)
+  .then(suggesNextActionsStep)
+  .then(exportTempFileForHumanReviewStep)
+  .then(waitForHumanApproveOrFixStep)
   .commit();

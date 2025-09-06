@@ -41,6 +41,9 @@ importers:
       '@slack/web-api':
         specifier: ^7.10.0
         version: 7.10.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -2573,6 +2576,7 @@ packages:
   prettier@3.6.2:
     resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
     engines: {node: '>=14'}
+    hasBin: true
 
   pretty-ms@9.2.0:
     resolution: {integrity: sha512-4yf0QO/sllf/1zbZWYnvWw3NxCQwLXKzIj0G849LSufP15BXKM0rbD2Z3wVnkMfjdn/CB0Dpp444gYAACdsplg==}
