@@ -8,10 +8,10 @@ export const linearToolOutputSchema = z.array(
   z.object({
     id: z.string(),
     title: z.string(),
-    description: z.string().nullable(),
+    description: z.string().nullish(),
     status: z.string(),
-    priority: z.number().nullable(),
-    slackLink: z.string().nullable(),
-    // assignee: z.string().nullable(),
+    priority: z.number().nullish(),
+    slackLink: z.string().nullish(),
+    // assignee: z.string().nullish(),
   }),
 );

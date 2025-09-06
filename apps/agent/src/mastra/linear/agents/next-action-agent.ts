@@ -18,7 +18,7 @@ description: z.string().min(1), // 何をするか
 ownerRole: ZOwnerRole, // engineer / customerSuccess
 priority: ZPriority, // high / middle / low
 ticketId: z.string().min(1), // 対象チケットID
-slackUrl: z.string().url().nullable(), // 関連するSlackのメッセージ or スレッドURL
+slackUrl: z.string().url().nullish(), // 関連するSlackのメッセージ or スレッドURL
 confidence: z.number().int().min(1).max(5), // 解決策への自信度 1..5 (1=低い, 5=高い)
 rationale: z.string().min(1), // 判断理由
 investigation: ZInvestigation.optional(), // 必要時のみ
