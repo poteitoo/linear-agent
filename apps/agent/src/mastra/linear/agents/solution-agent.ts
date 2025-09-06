@@ -5,6 +5,7 @@ import { Memory } from "@mastra/memory";
 import { linearTool } from "../tools/linear-tool";
 import { readFilesTool } from "../tools/read-files";
 import { writeFilesTool } from "../tools/write-files";
+import { slackTool } from "../tools/slack-tool";
 
 export const solutionAgent = new Agent({
   name: "solution-enginner",
@@ -13,7 +14,7 @@ export const solutionAgent = new Agent({
   あなたの主な役割は、ユーザーの技術課題や機能要望を明確化・デリスクし、そのうえで根拠ある5つの解決オプションを提示することです。
 `,
   model: anthropic("claude-3-7-sonnet-20250219"),
-  tools: { readFilesTool, writeFilesTool, linearTool },
+  tools: { readFilesTool, writeFilesTool, linearTool, slackTool },
   memory: new Memory({
     storage: new LibSQLStore({
       url: "file:../mastra.db",
