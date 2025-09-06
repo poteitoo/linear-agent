@@ -6,6 +6,8 @@ import {
   addLabelToIssueOutputSchema,
   linearToolInputSchema,
   linearToolOutputSchema,
+  removeLabelFromIssueInputSchema,
+  removeLabelFromIssueOutputSchema,
 } from "../../schema/linear-tool";
 
 const linearClient = new LinearClient({
@@ -14,7 +16,7 @@ const linearClient = new LinearClient({
 
 export const linearTool = createTool({
   id: "get-linear-triage",
-  description: "Get the triage tickets from Linear",
+  description: "Linearからトリアージチケットを取得する",
   inputSchema: linearToolInputSchema,
   outputSchema: linearToolOutputSchema,
   execute: async ({ context }) => {
@@ -56,9 +58,11 @@ async function getTriageIssues(teamKey: string) {
       description: issue.description || null,
       status: "Triage",
       priority: issue.priority || null,
-      slackLink: issue.attachments ? (await issue.attachments()).nodes
-    .filter((att) => att.url.includes("slack.com")) // only Slack links
-    .map((att) => att.url)[0] || null : null,
+      slackLink: issue.attachments
+        ? (await issue.attachments()).nodes
+            .filter((att) => att.url.includes("slack.com")) // only Slack links
+            .map((att) => att.url)[0] || null
+        : null,
     })),
   );
 
@@ -67,8 +71,7 @@ async function getTriageIssues(teamKey: string) {
 
 export const addLabelToIssueTool = createTool({
   id: "add-label-to-issue",
-  description:
-    "Add a label to a Linear issue to indicate agent interaction status",
+  description: "Linearイシューにエージェント操作状況を示すラベルを追加する",
   inputSchema: addLabelToIssueInputSchema,
   outputSchema: addLabelToIssueOutputSchema,
   execute: async ({ context }) => {
@@ -141,6 +144,60 @@ async function addLabelToIssue(
     return {
       success: false,
       message: `Failed to add label: ${error instanceof Error ? error.message : "Unknown error"}`,
+      issueId,
+    };
+  }
+}
+
+export const removeLabelFromIssueTool = createTool({
+  id: "remove-label-from-issue",
+  description: "Linearイシューからラベルを削除する",
+  inputSchema: removeLabelFromIssueInputSchema,
+  outputSchema: removeLabelFromIssueOutputSchema,
+  execute: async ({ context }) => {
+    const { issueId, labelName } = context;
+    return await removeLabelFromIssue(issueId, labelName);
+  },
+});
+
+async function removeLabelFromIssue(issueId: string, labelName: string) {
+  try {
+    const issue = await linearClient.issue(issueId);
+    if (!issue) {
+      throw new Error(`Issue with ID '${issueId}' not found`);
+    }
+
+    const issueLabels = await issue.labels();
+    const labelToRemove = issueLabels.nodes.find(
+      (label) => label.name === labelName,
+    );
+
+    if (!labelToRemove) {
+      return {
+        success: false,
+        message: `Label '${labelName}' not found on issue`,
+        issueId,
+      };
+    }
+
+    const result = await linearClient.issueRemoveLabel(
+      issueId,
+      labelToRemove.id,
+    );
+
+    if (result.success) {
+      return {
+        success: true,
+        message: `Successfully removed label '${labelName}' from issue`,
+        issueId,
+      };
+    } else {
+      throw new Error("Failed to remove label from issue");
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to remove label: ${error instanceof Error ? error.message : "Unknown error"}`,
       issueId,
     };
   }
