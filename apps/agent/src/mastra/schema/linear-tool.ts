@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const linearToolInputSchema = z.object({
-  team: z.string().describe("Team name (e.g., Engineering)"),
+  team: z.string().describe("チーム名 (例: Engineering)"),
 });
 
 export const linearToolOutputSchema = z.array(
@@ -16,10 +16,10 @@ export const linearToolOutputSchema = z.array(
 );
 
 export const addLabelToIssueInputSchema = z.object({
-  issueId: z.string().describe("Linear issue ID to add label to"),
+  issueId: z.string().describe("ラベルを追加するLinearイシューのID"),
   labelType: z
     .enum(["agent_questioned", "agent_proposed_solution"])
-    .describe("Type of label to add"),
+    .describe("追加するラベルの種類"),
 });
 
 export const addLabelToIssueOutputSchema = z.object({
@@ -27,4 +27,15 @@ export const addLabelToIssueOutputSchema = z.object({
   message: z.string(),
   issueId: z.string(),
   labelId: z.string().optional(),
+});
+
+export const removeLabelFromIssueInputSchema = z.object({
+  issueId: z.string().describe("ラベルを削除するLinearイシューのID"),
+  labelName: z.string().describe("削除するラベル名"),
+});
+
+export const removeLabelFromIssueOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  issueId: z.string(),
 });
