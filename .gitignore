@@ -36,3 +36,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Wait for human review files
+apps/agent/wait-for-human-review.json
