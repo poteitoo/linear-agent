@@ -1,7 +1,10 @@
 import { env } from "node:process";
 import { LinearClient } from "@linear/sdk";
 import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import {
+  linearToolInputSchema,
+  linearToolOutputSchema,
+} from "../../schema/linear-tool";
 
 const linearClient = new LinearClient({
   apiKey: env.LINEAR_API_KEY,
@@ -10,19 +13,8 @@ const linearClient = new LinearClient({
 export const linearTool = createTool({
   id: "get-linear-triage",
   description: "Get the triage tickets from Linear",
-  inputSchema: z.object({
-    team: z.string().describe("Team name (e.g., Engineering)"),
-  }),
-  outputSchema: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      description: z.string().nullable(),
-      status: z.string(),
-      priority: z.number().nullable(),
-      // assignee: z.string().nullable(),
-    }),
-  ),
+  inputSchema: linearToolInputSchema,
+  outputSchema: linearToolOutputSchema,
   execute: async ({ context }) => {
     return await getTriageIssues(context.team);
   },

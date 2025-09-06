@@ -1,34 +1,16 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import {
+  readFilesToolInputSchema,
+  readFilesToolOutputSchema,
+} from "../../schema/read-files-tool";
 
 export const readFilesTool = createTool({
   id: "read-files",
   description: "指定されたディレクトリからファイルを読み込む",
-  inputSchema: z.object({
-    directoryPath: z.string().describe("ファイルを読み込むディレクトリのパス"),
-    fileExtensions: z
-      .array(z.string())
-      .optional()
-      .describe("フィルタリングする拡張子の配列（例: ['.ts', '.js']）"),
-    maxFiles: z
-      .number()
-      .optional()
-      .default(10)
-      .describe("読み込むファイルの最大数（デフォルト: 10）"),
-  }),
-  outputSchema: z.object({
-    files: z.array(
-      z.object({
-        path: z.string(),
-        name: z.string(),
-        content: z.string(),
-        size: z.number(),
-      }),
-    ),
-    totalFiles: z.number(),
-  }),
+  inputSchema: readFilesToolInputSchema,
+  outputSchema: readFilesToolOutputSchema,
   execute: async ({ context }) => {
     const { directoryPath, fileExtensions, maxFiles = 10 } = context;
 

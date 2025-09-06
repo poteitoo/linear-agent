@@ -1,23 +1,18 @@
 import { env } from "node:process";
 import { createTool } from "@mastra/core/tools";
 import { WebClient } from "@slack/web-api";
-import { z } from "zod";
+import {
+  slackToolInputSchema,
+  slackToolOutputSchema,
+} from "../../schema/slack-tool";
 
 const slackClient = new WebClient(env.SLACK_TOKEN);
 
 export const slackTool = createTool({
   id: "send-slack-message",
   description: "Send a message to a Slack channel",
-  inputSchema: z.object({
-    channel: z.string().describe("Slack channel ID"),
-    thread_ts: z.string().describe("Thread timestamp for replies"),
-    message: z.string().describe("Message to send"),
-  }),
-  outputSchema: z.object({
-    ok: z.boolean(),
-    channel: z.string(),
-    ts: z.string(),
-  }),
+  inputSchema: slackToolInputSchema,
+  outputSchema: slackToolOutputSchema,
   execute: async ({ context }) => {
     const { channel, thread_ts, message } = context;
     const channelName = await getChannelIdByName(channel);

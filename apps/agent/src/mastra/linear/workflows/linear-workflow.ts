@@ -1,19 +1,28 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
 import prettier from "prettier";
-import { z } from "zod";
 import { ZActionProposal } from "../../prompts/create-next-action";
-import { writeFileOutputSchema } from "../../prompts/write-files";
-import { linearIssueSchema } from "../../schema/linear-issue";
+import {
+  exportTempFileStepInputSchema,
+  exportTempFileStepOutputSchema,
+  exportTempFileStepResumeSchema,
+  fetchTriageStepInputSchema,
+  fetchTriageStepOutputSchema,
+  linearTriageWorkflowInputSchema,
+  linearTriageWorkflowOutputSchema,
+  suggestNextActionsStepInputSchema,
+  suggestNextActionsStepOutputSchema,
+  waitForHumanApproveStepInputSchema,
+  waitForHumanApproveStepOutputSchema,
+  waitForHumanApproveStepResumeSchema,
+} from "../../schema/workflow-steps";
 import { linearTool } from "../tools/linear-tool";
 import { writeFilesTool } from "../tools/write-files";
 
 const fetchTriageStep = createStep({
   id: "fetch-triage-from-linear",
   description: "Linearからトリアージチケットを取得する",
-  inputSchema: z.object({
-    team: z.string().describe("トリアージを取得するチーム名"),
-  }),
-  outputSchema: z.object({ issues: z.array(linearIssueSchema) }),
+  inputSchema: fetchTriageStepInputSchema,
+  outputSchema: fetchTriageStepOutputSchema,
   execute: async ({ inputData, tracingContext, runtimeContext }) => {
     const { team } = inputData;
     const result = await linearTool.execute({
@@ -29,8 +38,8 @@ const fetchTriageStep = createStep({
 const suggesNextActionsStep = createStep({
   id: "suggest-next-actions",
   description: "トリアージチケットから次のアクション3つを提案する",
-  inputSchema: z.object({ issues: z.array(linearIssueSchema) }),
-  outputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
+  inputSchema: suggestNextActionsStepInputSchema,
+  outputSchema: suggestNextActionsStepOutputSchema,
   execute: async ({ inputData, mastra }) => {
     const triageTickets = inputData.issues;
 
@@ -59,14 +68,9 @@ const suggesNextActionsStep = createStep({
 const exportTempFileForHumanReviewStep = createStep({
   id: "export-tempfile-for-human-review",
   description: "ユーザーの確認があるまで一時停止する",
-  inputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
-  resumeSchema: z.object({
-    review: z.enum(["approved", "fixed"]),
-  }),
-  outputSchema: z.object({
-    nextActions: z.array(ZActionProposal),
-    writtenFiles: writeFileOutputSchema,
-  }),
+  inputSchema: exportTempFileStepInputSchema,
+  resumeSchema: exportTempFileStepResumeSchema,
+  outputSchema: exportTempFileStepOutputSchema,
   execute: async ({ inputData, runtimeContext, tracingContext }) => {
     const nextActions = inputData.nextActions;
     const writtenFiles = await writeFilesTool.execute({
@@ -93,14 +97,9 @@ const exportTempFileForHumanReviewStep = createStep({
 const waitForHumanApproveOrFixStep = createStep({
   id: "wait-for-human-approve-or-fix-step",
   description: "ユーザーの確認があるまで一時停止する",
-  inputSchema: z.object({
-    nextActions: z.array(ZActionProposal),
-    writtenFiles: writeFileOutputSchema,
-  }),
-  resumeSchema: z.object({
-    review: z.enum(["approved", "fixed"]),
-  }),
-  outputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
+  inputSchema: waitForHumanApproveStepInputSchema,
+  resumeSchema: waitForHumanApproveStepResumeSchema,
+  outputSchema: waitForHumanApproveStepOutputSchema,
   execute: async ({ inputData, resumeData, suspend }) => {
     const nextActions = inputData.nextActions;
     const { review } = resumeData ?? {};
@@ -117,24 +116,8 @@ export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
     "指定されたチームのLinearトリアージチケットを取得し、次のアクションを提案する",
-  inputSchema: z.object({
-    team: z.string().describe("トリアージを取得するチーム名"),
-  }),
-  outputSchema: z.object({
-    suggestions: z
-      .array(
-        z.object({
-          action: z.string().describe("提案するアクション"),
-          reasoning: z.string().describe("このアクションを提案する理由"),
-          priority: z
-            .enum(["high", "medium", "low"])
-            .describe("アクションの優先度"),
-          ticketId: z.string().describe("関連するチケットID"),
-        }),
-      )
-      .length(3),
-    summary: z.string().describe("全体的な状況の要約"),
-  }),
+  inputSchema: linearTriageWorkflowInputSchema,
+  outputSchema: linearTriageWorkflowOutputSchema,
 })
   .then(fetchTriageStep)
   .then(suggesNextActionsStep)
