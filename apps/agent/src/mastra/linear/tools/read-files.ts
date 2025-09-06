@@ -7,15 +7,11 @@ export const readFilesTool = createTool({
   id: "read-files",
   description: "指定されたディレクトリからファイルを読み込む",
   inputSchema: z.object({
-    directoryPath: z
-      .string()
-      .describe("ファイルを読み込むディレクトリのパス"),
+    directoryPath: z.string().describe("ファイルを読み込むディレクトリのパス"),
     fileExtensions: z
       .array(z.string())
       .optional()
-      .describe(
-        "フィルタリングする拡張子の配列（例: ['.ts', '.js']）",
-      ),
+      .describe("フィルタリングする拡張子の配列（例: ['.ts', '.js']）"),
     maxFiles: z
       .number()
       .optional()

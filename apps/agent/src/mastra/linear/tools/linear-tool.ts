@@ -1,6 +1,6 @@
+import { env } from "node:process";
 import { LinearClient } from "@linear/sdk";
 import { createTool } from "@mastra/core/tools";
-import { env } from "process";
 import { z } from "zod";
 
 const linearClient = new LinearClient({
@@ -63,7 +63,7 @@ async function getTriageIssues(teamKey: string) {
       status: "Triage",
       priority: issue.priority || null,
       // assignee: issue.assignee ? (await issue.assignee).displayName || null : null,
-    }))
+    })),
   );
 
   return issuesWithAssignees;
