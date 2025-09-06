@@ -45,7 +45,7 @@ async function getTriageIssues(teamKey: string) {
       state: { id: { eq: triageState.id } },
       team: { id: { eq: team.id } },
     },
-    first: 10, // pagination size
+    first: 3, // pagination size
   });
 
   const allIssues = issues.nodes;
