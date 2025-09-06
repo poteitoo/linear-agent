@@ -4,8 +4,8 @@ import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 import { linearTool } from "../tools/linear-tool";
 import { readFilesTool } from "../tools/read-files";
-import { writeFilesTool } from "../tools/write-files";
 import { slackTool } from "../tools/slack-tool";
+import { writeFilesTool } from "../tools/write-files";
 
 export const solutionAgent = new Agent({
   name: "solution-enginner",

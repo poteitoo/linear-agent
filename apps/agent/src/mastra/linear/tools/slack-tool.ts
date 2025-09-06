@@ -1,6 +1,6 @@
-import { WebClient } from '@slack/web-api';
-import { env } from 'node:process';
+import { env } from "node:process";
 import { createTool } from "@mastra/core/tools";
+import { WebClient } from "@slack/web-api";
 import { z } from "zod";
 
 const slackClient = new WebClient(env.SLACK_TOKEN);
@@ -24,7 +24,11 @@ export const slackTool = createTool({
     if (!channelName) {
       throw new Error("Channel not found");
     }
-    const response = await sendSlackMessage(channelName, thread_ts || "", message);
+    const response = await sendSlackMessage(
+      channelName,
+      thread_ts || "",
+      message,
+    );
     return response;
   },
 });
@@ -38,7 +42,7 @@ async function getChannelIdByName(name: string): Promise<string | null> {
       cursor,
     });
 
-    const channel = res.channels?.find(c => c.name === name);
+    const channel = res.channels?.find((c) => c.name === name);
     if (channel) {
       return channel.id || null;
     }
@@ -49,7 +53,11 @@ async function getChannelIdByName(name: string): Promise<string | null> {
   return null;
 }
 
-async function sendSlackMessage(channel: string, thread_ts: string, message: string) {
+async function sendSlackMessage(
+  channel: string,
+  thread_ts: string,
+  message: string,
+) {
   const response = await slackClient.chat.postMessage({
     channel,
     thread_ts,
@@ -58,6 +66,6 @@ async function sendSlackMessage(channel: string, thread_ts: string, message: str
   return {
     ok: response.ok || false,
     channel: response.channel || channel,
-    ts: response.ts || '',
+    ts: response.ts || "",
   };
 }
