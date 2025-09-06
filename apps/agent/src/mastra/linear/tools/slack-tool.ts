@@ -30,7 +30,7 @@ export const slackTool = createTool({
 });
 
 async function getChannelIdByName(name: string): Promise<string | null> {
-  let cursor;
+  let cursor: string | undefined;
   do {
     const res = await slackClient.conversations.list({
       exclude_archived: true,
