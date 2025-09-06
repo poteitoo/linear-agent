@@ -19,9 +19,9 @@ export const ZQuestion = z
       "user", // 実ユーザー/顧客
       "other",
     ]),
-    toName: z.string().min(1).nullish(), // 宛先名（任意）
-    content: z.string().min(1), // 具体的な質問
-    necessity: z.number().int().min(1).max(5), // 質問の必要度 1..5 (1=低い, 5=高い)
+    toName: z.string().nullish(), // 宛先名（任意）
+    content: z.string(), // 具体的な質問
+    necessity: z.number(), // 質問の必要度 1..5 (1=低い, 5=高い)
   })
   .strict();
 
@@ -42,7 +42,7 @@ export const ZActionProposal = z.object({
   ownerRole: ZOwnerRole, // engineer / customerSuccess
   priority: ZPriority, // high / middle / low
   ticketId: z.string(), // 対象チケットID
-  confidence: z.number().int().min(1).max(5), // 解決策への自信度 1..5 (この解決策が問題を適切に解決できる確信レベル)
+  confidence: z.number(), // 解決策への自信度 1..5 (この解決策が問題を適切に解決できる確信レベル)
   rationale: z.string(), // 判断理由
   investigation: ZInvestigation.nullish(), // 必要時のみ
   questions: z.array(ZQuestion).nullish(), // 必要時のみ
@@ -53,8 +53,8 @@ export const ZActionResult = z
   .object({
     schemaVersion: z.literal("1.0.0"),
     // 任意でこの提案の位置づけを入れたい場合（例：全3案のうちの何番目か）
-    index: z.number().int().min(1).nullish(),
-    totalPlanned: z.number().int().min(1).nullish(),
+    index: z.number().nullish(),
+    totalPlanned: z.number().nullish(),
     // 実体は 1件のアクション
     action: ZActionProposal,
   })
