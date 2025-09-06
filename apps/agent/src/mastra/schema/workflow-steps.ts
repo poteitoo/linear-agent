@@ -50,6 +50,16 @@ export const waitForHumanApproveStepOutputSchema = z.object({
   writtenFile: writtenFileShcema,
 });
 
+export const sendSlackQuestionStepInputSchema = z.object({
+  nextActions: z.array(ZActionProposal),
+  writtenFile: writtenFileShcema,
+});
+
+export const sendSlackQuestionStepOutputSchema = z.object({
+  oks: z.array(z.boolean()),
+  slackUrls: z.array(z.string().url()),
+});
+
 // Main workflow schemas
 export const linearTriageWorkflowInputSchema = z.object({
   team: z.string().describe("トリアージを取得するチーム名"),

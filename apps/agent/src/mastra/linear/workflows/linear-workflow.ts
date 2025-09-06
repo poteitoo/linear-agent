@@ -14,9 +14,12 @@ import {
   waitForHumanApproveStepInputSchema,
   waitForHumanApproveStepOutputSchema,
   waitForHumanApproveStepResumeSchema,
+  sendSlackQuestionStepInputSchema,
+  sendSlackQuestionStepOutputSchema,
 } from "../../schema/workflow-steps";
 import { linearTool } from "../tools/linear-tool";
 import { writeFilesTool } from "../tools/write-files";
+import { slackTool } from "../tools/slack-tool";
 
 const fetchTriageStep = createStep({
   id: "fetch-triage-from-linear",
@@ -117,6 +120,62 @@ const waitForHumanApproveOrFixStep = createStep({
   },
 });
 
+const sendSlackQuestionStep = createStep({
+  id: "send-slack-question",
+  description: "必要に応じてSlackで質問を送信する",
+  inputSchema: sendSlackQuestionStepInputSchema,
+  outputSchema: sendSlackQuestionStepOutputSchema,
+  execute: async ({ inputData, runtimeContext, tracingContext }) => {
+    const { nextActions } = inputData;
+    const actionsWithQuestions = nextActions.filter(
+      (action) => action.questions && action.questions.length > 0,
+    );
+    if (actionsWithQuestions.length === 0) {
+      return {
+        oks: [],
+        slackUrls: [],
+      };
+    }
+
+    const questionsWithActions = actionsWithQuestions
+      .flatMap((action) => 
+        action.questions?.map((question) => ({
+          question,
+          slackUrl: action.slackUrl
+        })) || []
+      );
+
+    const responses = await Promise.all(
+      questionsWithActions.filter(({ question }) => question?.necessity && question?.necessity > 3).map(({ question, slackUrl }) => {
+        const message = `質問があります: ${question?.content}
+宛先: ${question?.toRole}${question?.toName ? ` (${question?.toName})` : ""}
+必要度: ${question?.necessity}/5
+`;
+        // TEST HARDCODE TO AVOID SPAM
+        slackUrl = "https://medimo-pleap.slack.com/archives/C06DEFWUSNM/p1757140310736399"
+
+        if (slackUrl){
+          return slackTool.execute({
+            context: { slackUrl, message },
+            runtimeContext,
+            tracingContext,
+          });
+        }
+        return {
+          ok: false,
+          slackUrl: "",
+          ts: "",
+        }
+      })
+    );
+
+    return {
+      oks: responses.map((res) => res.ok),
+      slackUrls: responses.map((res) => res.slackUrl),
+    };
+  },
+});
+
 export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
@@ -128,4 +187,5 @@ export const linearTriageWorkflow = createWorkflow({
   .then(suggesNextActionsStep)
   .then(exportTempFileForHumanReviewStep)
   .then(waitForHumanApproveOrFixStep)
+  .then(sendSlackQuestionStep)
   .commit();
