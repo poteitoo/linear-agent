@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { ZActionProposal } from "../prompts/create-next-action";
-import { writeFileOutputSchema } from "../prompts/write-files";
+import {
+  writeFileOutputSchema,
+  writtenFileShcema,
+} from "../prompts/write-files";
 import { linearIssueSchema } from "./linear-issue";
 
 // Workflow step input schemas
@@ -44,6 +47,7 @@ export const waitForHumanApproveStepResumeSchema = z.object({
 
 export const waitForHumanApproveStepOutputSchema = z.object({
   nextActions: z.array(ZActionProposal),
+  writtenFile: writtenFileShcema,
 });
 
 // Main workflow schemas

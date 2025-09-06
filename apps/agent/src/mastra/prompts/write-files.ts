@@ -26,14 +26,14 @@ export const writeFileInputSchema = z.object({
     ),
 });
 
+export const writtenFileShcema = z.object({
+  path: z.string(),
+  success: z.boolean(),
+  error: z.string().optional(),
+});
+
 export const writeFileOutputSchema = z.object({
-  writtenFiles: z.array(
-    z.object({
-      path: z.string(),
-      success: z.boolean(),
-      error: z.string().optional(),
-    }),
-  ),
+  writtenFiles: z.array(writtenFileShcema),
   totalFiles: z.number(),
   successCount: z.number(),
   errorCount: z.number(),
