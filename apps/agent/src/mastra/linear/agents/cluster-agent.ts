@@ -3,7 +3,7 @@ import { Agent } from "@mastra/core/agent";
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 
-export const nextActionAgent = new Agent({
+export const clusterAgent = new Agent({
   name: "cluster-agent",
   instructions: `あなたは バグ修正と機能要望に関する質問や解決策をクラスタリングするエージェントです。
   受け取った情報を分類・整理し、どの課題にどの程度のインパクトがあるかを推定する手助けをします。ただし以下のルールに注意すること。
