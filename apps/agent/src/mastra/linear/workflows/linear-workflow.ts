@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ZActionProposal } from "../../prompts/create-next-action";
 import { linearIssueSchema } from "../../schema/linear-issue";
 import { linearTool } from "../tools/linear-tool";
+import { jsonToMarkdownTool } from "../tools/markdown-tool";
 
 const fetchTriageStep = createStep({
   id: "fetch-triage-from-linear",
@@ -53,6 +54,29 @@ const suggestActionsStep = createStep({
   },
 });
 
+const exportMarkdownStep = createStep({
+  id: "export-markdown",
+  description: "提案されたアクションをMarkdown形式に変換する",
+  inputSchema: z.object({
+    nextActions: z.array(ZActionProposal),
+  }),
+  outputSchema: z.object({
+    markdown: z.string().describe("提案されたアクションのMarkdown形式"),
+  }),
+  execute: async ({ inputData, tracingContext, runtimeContext }) => {
+    const { nextActions } = inputData;
+    const json = JSON.stringify(nextActions, null, 2);
+    
+    const result = await jsonToMarkdownTool.execute({
+      context: { json, title: "提案されたアクション" },
+      runtimeContext,
+      tracingContext,
+    });
+    
+    return { markdown: result.markdown };
+  }
+});
+
 export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
@@ -78,4 +102,5 @@ export const linearTriageWorkflow = createWorkflow({
 })
   .then(fetchTriageStep)
   .then(suggestActionsStep)
+  .then(exportMarkdownStep)
   .commit();
