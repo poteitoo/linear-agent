@@ -194,19 +194,54 @@ const clusterHighConfidenceActionsStep = createStep({
   execute: async ({ inputData, mastra }) => {
     const { nextActions } = inputData;
     const highConfidenceActions = nextActions.filter(
-      (action) => action.confidence > 4,
+      (action) => action.confidence >= 4,
     );
 
-    // Cluster by calling the LLM and grouping similar actions together
-    const agent = mastra.getAgent("clusterAgent");
-    const clustering = await agent.generate(JSON.stringify(highConfidenceActions), {
-      output: ClusteringOutputSchema,
-    });
+    if (highConfidenceActions.length === 0) {
+      // Return empty clustering result if no high-confidence actions
+      return {
+        // nextActions,
+        clustering: {
+          context: {
+            generatedAt: new Date().toISOString(),
+            inputSummary: "No high-confidence actions to cluster",
+            totalItems: 0,
+          },
+          questionClusters: [],
+          solutionClusters: [],
+          unclustered: [],
+        },
+      };
+    }
 
-    return {
-      nextActions,
-      clustering: clustering.object,
-    };
+    try {
+      // Cluster by calling the LLM and grouping similar actions together
+      const agent = mastra.getAgent("clusterAgent");
+      const clustering = await agent.generate(JSON.stringify(highConfidenceActions), {
+        output: ClusteringOutputSchema,
+      });
+
+      return {
+        // nextActions,
+        clustering: clustering.object,
+      };
+    } catch (error) {
+      console.error("Clustering failed:", error);
+      // Return empty clustering result on error
+      return {
+        // nextActions,
+        clustering: {
+          context: {
+            generatedAt: new Date().toISOString(),
+            inputSummary: `Clustering failed: ${(error as Error).message}`,
+            totalItems: highConfidenceActions.length,
+          },
+          questionClusters: [],
+          solutionClusters: [],
+          unclustered: [],
+        },
+      };
+    }
   }
 });
 

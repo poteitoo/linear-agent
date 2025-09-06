@@ -70,7 +70,7 @@ export const clusterHighConfidenceActionsStepInputSchema = z.object({
 });
 
 export const clusterHighConfidenceActionsStepOutputSchema = z.object({
-  nextActions: z.array(ZActionProposal),
+  // nextActions: z.array(ZActionProposal),
   clustering: ClusteringOutputSchema,
 });
 
