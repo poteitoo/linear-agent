@@ -1,6 +1,7 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
 import prettier from "prettier";
 import { ZActionProposal } from "../../prompts/create-next-action";
+import { ClusteringOutputSchema } from "../../prompts/create-cluster";
 import {
   exportTempFileStepInputSchema,
   exportTempFileStepOutputSchema,
@@ -16,6 +17,8 @@ import {
   waitForHumanApproveStepInputSchema,
   waitForHumanApproveStepOutputSchema,
   waitForHumanApproveStepResumeSchema,
+  clusterHighConfidenceActionsStepInputSchema,
+  clusterHighConfidenceActionsStepOutputSchema,
 } from "../../schema/workflow-steps";
 import { linearTool } from "../tools/linear-tool";
 import { slackTool } from "../tools/slack-tool";
@@ -134,6 +137,7 @@ const sendSlackQuestionStep = createStep({
       return {
         oks: [],
         slackUrls: [],
+        nextActions,
       };
     }
 
@@ -177,8 +181,33 @@ const sendSlackQuestionStep = createStep({
     return {
       oks: responses.map((res) => res.ok),
       slackUrls: responses.map((res) => res.slackUrl),
+      nextActions,
     };
   },
+});
+
+const clusterHighConfidenceActionsStep = createStep({
+  id: "cluster-high-confidence-actions",
+  description: "自信度の高いアクションをクラスタリングする",
+  inputSchema: clusterHighConfidenceActionsStepInputSchema,
+  outputSchema: clusterHighConfidenceActionsStepOutputSchema,
+  execute: async ({ inputData, mastra }) => {
+    const { nextActions } = inputData;
+    const highConfidenceActions = nextActions.filter(
+      (action) => action.confidence > 4,
+    );
+
+    // Cluster by calling the LLM and grouping similar actions together
+    const agent = mastra.getAgent("clusterAgent");
+    const clustering = await agent.generate(JSON.stringify(highConfidenceActions), {
+      output: ClusteringOutputSchema,
+    });
+
+    return {
+      nextActions,
+      clustering: clustering.object,
+    };
+  }
 });
 
 export const linearTriageWorkflow = createWorkflow({
@@ -193,4 +222,5 @@ export const linearTriageWorkflow = createWorkflow({
   .then(exportTempFileForHumanReviewStep)
   .then(waitForHumanApproveOrFixStep)
   .then(sendSlackQuestionStep)
+  .then(clusterHighConfidenceActionsStep)
   .commit();
