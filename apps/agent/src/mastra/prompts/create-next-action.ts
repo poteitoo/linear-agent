@@ -21,6 +21,7 @@ export const ZQuestion = z
     ]),
     toName: z.string().min(1).nullish(), // 宛先名（任意）
     content: z.string().min(1), // 具体的な質問
+    necessity: z.number().int().min(1).max(5), // 質問の必要度 1..5 (1=低い, 5=高い)
   })
   .strict();
 
@@ -41,7 +42,7 @@ export const ZActionProposal = z.object({
   ownerRole: ZOwnerRole, // engineer / customerSuccess
   priority: ZPriority, // high / middle / low
   ticketId: z.string(), // 対象チケットID
-  confidence: z.number(), // 確信度 1..5
+  confidence: z.number().int().min(1).max(5), // 解決策への自信度 1..5 (この解決策が問題を適切に解決できる確信レベル)
   rationale: z.string(), // 判断理由
   investigation: ZInvestigation.nullish(), // 必要時のみ
   questions: z.array(ZQuestion).nullish(), // 必要時のみ
