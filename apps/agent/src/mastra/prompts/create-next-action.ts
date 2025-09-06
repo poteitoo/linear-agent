@@ -42,6 +42,7 @@ export const ZActionProposal = z.object({
   ownerRole: ZOwnerRole, // engineer / customerSuccess
   priority: ZPriority, // high / middle / low
   ticketId: z.string(), // 対象チケットID
+  slackUrl: z.string().nullish(), // 関連するSlackのメッセージ or スレッドURL
   confidence: z.number(), // 解決策への自信度 1..5 (この解決策が問題を適切に解決できる確信レベル)
   rationale: z.string(), // 判断理由
   investigation: ZInvestigation.nullish(), // 必要時のみ
