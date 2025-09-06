@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(bun run:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(lsof:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "mcp__booklens__search",
+      "mcp__booklens__get_page",
+      "Bash(ruff format:*)",
+      "Bash(ruff check:*)",
+      "Bash(mkdir:*)",
+      "Bash(bunx tsc:*)",
+      "Bash(bun install:*)",
+      "Bash(mv:*)",
+      "Bash(bun add:*)",
+      "Bash(npm run test:*)",
+      "Bash(bun:*)",
+      "Bash(git commit:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": ["Bash(git add:*)"]
+  },
+  "enableAllProjectMcpServers": false
+}
