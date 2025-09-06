@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ClusteringOutputSchema } from "../prompts/create-cluster";
 import { ZActionProposal } from "../prompts/create-next-action";
 import {
   writeFileOutputSchema,
@@ -25,6 +26,7 @@ export const suggestNextActionsStepOutputSchema = z.object({
 
 export const exportTempFileStepInputSchema = z.object({
   nextActions: z.array(ZActionProposal),
+  clustering: ClusteringOutputSchema.optional(),
 });
 
 export const exportTempFileStepResumeSchema = z.object({
@@ -48,6 +50,27 @@ export const waitForHumanApproveStepResumeSchema = z.object({
 export const waitForHumanApproveStepOutputSchema = z.object({
   nextActions: z.array(ZActionProposal),
   writtenFile: writtenFileShcema,
+});
+
+export const sendSlackQuestionStepInputSchema = z.object({
+  nextActions: z.array(ZActionProposal),
+  writtenFile: writtenFileShcema,
+});
+
+export const sendSlackQuestionStepOutputSchema = z.object({
+  oks: z.array(z.boolean()),
+  slackUrls: z.array(z.string().url()),
+  nextActions: z.array(ZActionProposal),
+});
+
+export const clusterHighConfidenceActionsStepInputSchema = z.object({
+  nextActions: z.array(ZActionProposal),
+  writtenFile: writtenFileShcema,
+});
+
+export const clusterHighConfidenceActionsStepOutputSchema = z.object({
+  // nextActions: z.array(ZActionProposal),
+  clustering: ClusteringOutputSchema,
 });
 
 // Main workflow schemas

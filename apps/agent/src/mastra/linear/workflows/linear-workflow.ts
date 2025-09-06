@@ -1,7 +1,10 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
 import prettier from "prettier";
+import { ClusteringOutputSchema } from "../../prompts/create-cluster";
 import { ZActionProposal } from "../../prompts/create-next-action";
 import {
+  clusterHighConfidenceActionsStepInputSchema,
+  clusterHighConfidenceActionsStepOutputSchema,
   exportTempFileStepInputSchema,
   exportTempFileStepOutputSchema,
   exportTempFileStepResumeSchema,
@@ -117,6 +120,35 @@ const waitForHumanApproveOrFixStep = createStep({
   },
 });
 
+const clusterHighConfidenceActionsStep = createStep({
+  id: "cluster-high-confidence-actions",
+  description: "自信度の高いアクションをクラスタリングする",
+  inputSchema: clusterHighConfidenceActionsStepInputSchema,
+  outputSchema: clusterHighConfidenceActionsStepOutputSchema,
+  execute: async ({ inputData, mastra }) => {
+    const { nextActions } = inputData;
+    const highConfidenceActions = nextActions
+      .filter((action) => action.confidence >= 4)
+      .map((action) => {
+        delete action.questions;
+        return action;
+      });
+
+    // Cluster by calling the LLM and grouping similar actions together
+    const agent = mastra.getAgent("clusterAgent");
+    const clustering = await agent.generate(
+      JSON.stringify(highConfidenceActions),
+      {
+        output: ClusteringOutputSchema,
+      },
+    );
+
+    return {
+      clustering: clustering.object,
+    };
+  },
+});
+
 export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
@@ -128,4 +160,5 @@ export const linearTriageWorkflow = createWorkflow({
   .then(suggesNextActionsStep)
   .then(exportTempFileForHumanReviewStep)
   .then(waitForHumanApproveOrFixStep)
+  .then(clusterHighConfidenceActionsStep)
   .commit();

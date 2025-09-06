@@ -1,13 +1,12 @@
 import { z } from "zod";
 
 export const slackToolInputSchema = z.object({
-  channel: z.string().describe("Slack channel ID"),
-  thread_ts: z.string().describe("Thread timestamp for replies"),
-  message: z.string().describe("Message to send"),
+  slackUrl: z.string().url(),
+  message: z.string(),
 });
 
 export const slackToolOutputSchema = z.object({
   ok: z.boolean(),
-  channel: z.string(),
+  slackUrl: z.string().url(),
   ts: z.string(),
 });

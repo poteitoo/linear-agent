@@ -11,8 +11,7 @@ export const linearToolOutputSchema = z.array(
     description: z.string().nullish(),
     status: z.string(),
     priority: z.number().nullish(),
-    slackLink: z.string().nullish(),
-    // assignee: z.string().nullish(),
+    slackUrl: z.string().url().nullish(),
   }),
 );
 
