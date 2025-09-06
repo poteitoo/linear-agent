@@ -91,25 +91,90 @@
 
 ## 5. アーキテクチャ & ワークフロー
 
+### 5.1 全体フロー図
+
+```mermaid
+flowchart TD
+    Start([ワークフロー開始]) --> FetchStep[Linear APIからトリアージ取得]
+    FetchStep --> NextActionStep[AIエージェントによる次アクション提案]
+    NextActionStep --> ExportStep[レビュー用ファイル出力]
+    ExportStep --> WaitStep[ヒューマンレビュー待機]
+    WaitStep --> ClusterStep[高自信度アクションのクラスタリング]
+    ClusterStep --> End([完了])
+```
+
+### 5.2 技術スタック別詳細フロー
+
+```mermaid
+graph TB
+    subgraph "Frontend/CLI Layer"
+        UI[ユーザーインターフェース<br/>pnpm run dev]
+    end
+    
+    subgraph "Mastra Framework"
+        Workflow[linearTriageWorkflow<br/>TypeScript]
+        Agent1[nextActionAgent<br/>Claude 3.5 Sonnet]
+        Agent2[solutionAgent<br/>Claude 3.5 Sonnet] 
+        Agent3[clusterAgent<br/>Claude 3.5 Sonnet]
+        Tools[Tools Layer]
+    end
+    
+    subgraph "External APIs"
+        Linear[Linear API<br/>GraphQL]
+        Anthropic[Anthropic API<br/>Claude]
+        Slack[Slack Web API<br/>Optional]
+    end
+    
+    subgraph "Storage Layer"
+        LibSQL[(LibSQL Database<br/>Memory/File)]
+        TempFiles[Temporary Files<br/>JSON/Markdown]
+    end
+    
+    UI --> Workflow
+    Workflow --> Agent1
+    Workflow --> Agent3
+    Agent1 --> Anthropic
+    Agent3 --> Anthropic
+    Tools --> Linear
+    Tools --> Slack
+    Workflow --> LibSQL
+    Workflow --> TempFiles
+```
+
+### 5.3 ワークフロー実行シーケンス
+
 ```mermaid
 sequenceDiagram
-  participant U as User (PM/EM)
-  participant L as Linear API (read-only)
-  participant A as Analyzer (Claude)
-  participant R as Review (Human)
-  participant C as Clusterer (Claude)
-  participant O as Output (Markdown)
-
-  U->>L: triage の issue をリクエスト
-  L-->>U: issues JSON
-  U->>A: 各課題に対して solutions(<=5)/questions を生成
-  A-->>U: solutions.jsonl / questions.jsonl
-  U->>R: 人手で solutions を取捨選択・修正（Markdown/JSON）
-  R-->>U: reviewed_solutions.jsonl
-  U->>C: reviewed_solutions を入力にクラスタリング
-  C-->>U: clusters.json
-  U->>O: ツリー構造の Markdown を生成
-  O-->>U: clusters.md（配布/共有）
+    participant User as ユーザー
+    participant MW as Mastra Workflow
+    participant LT as Linear Tool
+    participant NA as NextAction Agent
+    participant CA as Cluster Agent
+    participant FS as File System
+    
+    User->>MW: ワークフロー実行開始
+    MW->>LT: fetchTriageStep実行
+    LT->>Linear API: トリアージイシュー取得
+    Linear API-->>LT: イシューリスト
+    LT-->>MW: 構造化されたイシューデータ
+    
+    MW->>NA: suggestNextActionsStep実行
+    loop 各イシューに対して
+        NA->>Anthropic API: 次アクション提案要求
+        Anthropic API-->>NA: アクション提案(confidence含む)
+    end
+    NA-->>MW: 全アクション提案
+    
+    MW->>FS: exportTempFileStep実行
+    FS-->>MW: wait-for-human-review.json作成
+    MW->>User: ヒューマンレビュー待機
+    User->>MW: レビュー完了通知
+    
+    MW->>CA: clusterHighConfidenceActionsStep実行
+    CA->>Anthropic API: 高自信度アクションクラスタリング
+    Anthropic API-->>CA: クラスタリング結果
+    CA-->>MW: 構造化クラスター
+    MW-->>User: 最終結果
 ```
 
 ---
