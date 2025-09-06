@@ -1,121 +1,81 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
+import { ZActionProposal } from "../../prompts/create-next-action";
+import { linearIssueSchema } from "../../schema/linear-issue";
+import { linearTool } from "../tools/linear-tool";
 
-const startStep = createStep({
-  id: "start-step",
-  description: "Get the name of a famous person",
+const fetchTriageStep = createStep({
+  id: "fetch-triage-from-linear",
+  description: "Linearからトリアージチケットを取得する",
   inputSchema: z.object({
-    start: z.boolean(),
+    team: z.string().describe("トリアージを取得するチーム名"),
   }),
-  outputSchema: z.object({
-    famousPerson: z.string(),
-    guessCount: z.number(),
-  }),
-  execute: async ({ mastra }) => {
-    const agent = mastra.getAgent("solutionAgent");
-    const response = await agent.generate("Generate a famous person's name", {
-      temperature: 1,
-      topP: 0.9,
-      memory: {
-        resource: "heads-up-game",
-        thread: "famous-person-generator",
-      },
+  outputSchema: z.object({ issues: z.array(linearIssueSchema) }),
+  execute: async ({ inputData, tracingContext, runtimeContext }) => {
+    const { team } = inputData;
+    const result = await linearTool.execute({
+      context: { team },
+      runtimeContext,
+      tracingContext,
     });
-    const famousPerson = response.text.trim();
-    return { famousPerson, guessCount: 0 };
+
+    return { issues: result };
   },
 });
 
-const gameStep = createStep({
-  id: "game-step",
-  description: "Handles the question-answer-continue loop",
-  inputSchema: z.object({
-    famousPerson: z.string(),
-    guessCount: z.number(),
-  }),
-  resumeSchema: z.object({
-    userMessage: z.string(),
-  }),
-  suspendSchema: z.object({
-    suspendResponse: z.string(),
-  }),
-  outputSchema: z.object({
-    famousPerson: z.string(),
-    gameWon: z.boolean(),
-    agentResponse: z.string(),
-    guessCount: z.number(),
-  }),
-  execute: async ({ inputData, mastra, resumeData, suspend }) => {
-    let { famousPerson, guessCount } = inputData;
-    const { userMessage } = resumeData ?? {};
+const suggestActionsStep = createStep({
+  id: "suggest-next-actions",
+  description: "トリアージチケットから次のアクション3つを提案する",
+  inputSchema: z.object({ issues: z.array(linearIssueSchema) }),
+  outputSchema: z.object({ nextActions: z.array(ZActionProposal) }),
+  execute: async ({ inputData, mastra }) => {
+    const triageTickets = inputData.issues;
 
-    if (!userMessage) {
-      return await suspend({
-        suspendResponse:
-          "I'm thinking of a famous person. Ask me yes/no questions to figure out who it is!",
-      });
-    }
-
-    const agent = mastra.getAgent("solutionAgent");
-    const response = await agent.generate(
-      `
-        The famous person is: ${famousPerson}
-        The user said: "${userMessage}"
-        Please respond appropriately. If this is a guess, tell me if it's correct.
-      `,
-      {
-        output: z.object({
-          response: z.string(),
-          gameWon: z.boolean(),
-        }),
-      },
+    const nextActions = await Promise.allSettled(
+      triageTickets.map((triageTicket) => {
+        const agent = mastra.getAgent("nextActionAgent");
+        return agent.generate(JSON.stringify(triageTicket), {
+          output: ZActionProposal,
+        });
+      }),
     );
 
-    const { response: agentResponse, gameWon } = response.object;
-
-    guessCount++;
-
-    return { famousPerson, gameWon, agentResponse, guessCount };
+    const successNextActions = [];
+    for (const nextAction of nextActions) {
+      if (nextAction.status === "fulfilled") {
+        successNextActions.push(nextAction.value.object);
+      }
+      if (nextAction.status === "rejected") {
+        console.error("rejected", nextAction.reason);
+      }
+    }
+    return { nextActions: successNextActions };
   },
 });
 
-const winStep = createStep({
-  id: "win-step",
-  description: "Handle game win logic",
+export const linearTriageWorkflow = createWorkflow({
+  id: "linear-triage-workflow",
+  description:
+    "指定されたチームのLinearトリアージチケットを取得し、次のアクションを提案する",
   inputSchema: z.object({
-    famousPerson: z.string(),
-    gameWon: z.boolean(),
-    agentResponse: z.string(),
-    guessCount: z.number(),
+    team: z.string().describe("トリアージを取得するチーム名"),
   }),
   outputSchema: z.object({
-    famousPerson: z.string(),
-    gameWon: z.boolean(),
-    guessCount: z.number(),
-  }),
-  execute: async ({ inputData }) => {
-    const { famousPerson, gameWon, guessCount } = inputData;
-
-    console.log("famousPerson: ", famousPerson);
-    console.log("gameWon: ", gameWon);
-    console.log("guessCount: ", guessCount);
-
-    return { famousPerson, gameWon, guessCount };
-  },
-});
-
-export const headsUpWorkflow = createWorkflow({
-  id: "heads-up-workflow",
-  inputSchema: z.object({
-    start: z.boolean(),
-  }),
-  outputSchema: z.object({
-    famousPerson: z.string(),
-    gameWon: z.boolean(),
-    guessCount: z.number(),
+    suggestions: z
+      .array(
+        z.object({
+          action: z.string().describe("提案するアクション"),
+          reasoning: z.string().describe("このアクションを提案する理由"),
+          priority: z
+            .enum(["high", "medium", "low"])
+            .describe("アクションの優先度"),
+          ticketId: z.string().describe("関連するチケットID"),
+        }),
+      )
+      .length(3),
+    summary: z.string().describe("全体的な状況の要約"),
   }),
 })
-  .then(startStep)
-  .dountil(gameStep, async ({ inputData: { gameWon } }) => gameWon)
-  .then(winStep)
+  .then(fetchTriageStep)
+  .then(suggestActionsStep)
   .commit();
