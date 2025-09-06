@@ -41,7 +41,7 @@ async function getTriageIssues(teamKey: string) {
       state: { id: { eq: triageState.id } },
       team: { id: { eq: team.id } },
     },
-    first: 3, // pagination size
+    first: 20, // pagination size
   });
 
   const allIssues = issues.nodes;
@@ -58,7 +58,7 @@ async function getTriageIssues(teamKey: string) {
       description: issue.description || null,
       status: "Triage",
       priority: issue.priority || null,
-      slackLink: issue.attachments
+      slackUrl: issue.attachments
         ? (await issue.attachments()).nodes
             .filter((att) => att.url.includes("slack.com")) // only Slack links
             .map((att) => att.url)[0] || null
