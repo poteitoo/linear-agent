@@ -54,7 +54,9 @@ async function getTriageIssues(teamKey: string) {
       description: issue.description || null,
       status: "Triage",
       priority: issue.priority || null,
-      // assignee: issue.assignee ? (await issue.assignee).displayName || null : null,
+      slackLink: issue.attachments ? (await issue.attachments()).nodes
+    .filter((att) => att.url.includes("slack.com")) // only Slack links
+    .map((att) => att.url)[0] || null : null,
     })),
   );
 

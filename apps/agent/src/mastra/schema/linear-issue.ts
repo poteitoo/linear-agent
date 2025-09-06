@@ -6,5 +6,6 @@ export const linearIssueSchema = z.object({
   description: z.string().nullable(),
   status: z.string(),
   priority: z.number().nullable(),
+  slackLink: z.string().nullable(),
 });
 export type LinearIssueSchemaType = z.infer<typeof linearIssueSchema>;
