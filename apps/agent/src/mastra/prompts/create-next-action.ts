@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { LinearIssueSchemaType } from "../schema/linear-issue";
 
 /** 担当ロール */
 export const ZOwnerRole = z.enum(["engineer", "customerSuccess"]);
@@ -20,61 +19,44 @@ export const ZQuestion = z
       "user", // 実ユーザー/顧客
       "other",
     ]),
-    toName: z.string().min(1).optional(), // 宛先の氏名/ハンドル（分かれば）
-    content: z.string().min(1), // 具体的な質問内容
+    toName: z.string().min(1).nullish(), // 宛先名（任意）
+    content: z.string().min(1), // 具体的な質問
   })
   .strict();
 
 /** 調査（どんな調査が必要か） */
 export const ZInvestigation = z
   .object({
-    isNeeded: z.literal(true), // 調査が必要な場合だけこのオブジェクトを出す
-    what: z.string().min(1), // どんな調査か（例: 「iOS 16 の録音権限の再現」）
-    method: z.string().min(1).optional(), // 方法（例: 再現手順/ログ収集/DB照会/ユーザヒアリング 等）
-    expectedOutcome: z.string().min(1).optional(), // 期待するアウトカム（判断基準）
+    isNeeded: z.literal(true), // 調査が必要な場合のみオブジェクトを返す
+    what: z.string(), // 調査内容
+    method: z.string().nullish(), // 手段/アプローチ
+    expectedOutcome: z.string().nullish(), // 期待するアウトカム
   })
   .strict();
 
 /** アクション提案（1件分） */
-export const ZActionProposal = z
-  .object({
-    title: z.string().min(1), // アクションの見出し
-    description: z.string().min(1), // 何をするかの説明（簡潔に具体的に）
-    ownerRole: ZOwnerRole, // エンジニア or CS
-    priority: ZPriority, // high / middle / low
-    ticketId: z.string().min(1), // 対象チケットID（例: "LIN-1234"）
-    confidence: z.number().int().min(1).max(5), // 確信度 1..5
-    rationale: z.string().min(1), // そう判断した理由（短くOK）
+export const ZActionProposal = z.object({
+  title: z.string(), // 見出し
+  description: z.string(), // 何をするか
+  ownerRole: ZOwnerRole, // engineer / customerSuccess
+  priority: ZPriority, // high / middle / low
+  ticketId: z.string(), // 対象チケットID
+  confidence: z.number(), // 確信度 1..5
+  rationale: z.string(), // 判断理由
+  investigation: ZInvestigation.nullish(), // 必要時のみ
+  questions: z.array(ZQuestion).nullish(), // 必要時のみ
+});
 
-    // 調査が必要な場合のみ含める（必須ではない）
-    investigation: ZInvestigation.optional(),
-
-    // 質問が必要な場合は1件以上
-    questions: z.array(ZQuestion).min(1).optional(),
-  })
-  .strict();
-
-/** 全体スキーマ：アクションは必ず3件 */
-export const ZActionPlan = z
+/** トップレベル：単一アクションを返す */
+export const ZActionResult = z
   .object({
     schemaVersion: z.literal("1.0.0"),
-    summary: z.string().min(1).optional(), // 全体の要約（任意）
-    actions: z.array(ZActionProposal).length(3), // 3件ちょうど
+    // 任意でこの提案の位置づけを入れたい場合（例：全3案のうちの何番目か）
+    index: z.number().int().min(1).nullish(),
+    totalPlanned: z.number().int().min(1).nullish(),
+    // 実体は 1件のアクション
+    action: ZActionProposal,
   })
   .strict();
 
-export type ActionPlan = z.infer<typeof ZActionPlan>;
-
-export const createPromptForGenerateNextActionFromIssue = (
-  issue: LinearIssueSchemaType,
-) => {
-  return `以下のチケットを分析して次のアクションを３つ提案して下さい。ただし以下のルールに注意して下さい
-- エンジニアかカスタマーサクセスのどちらが担当するのか明確にする
-- 調査が必要な場合は、どんな調査が必要なのか明確に記載する
-- 質問が必要な場合は、誰にどんな質問なのか明確に記載する
-- 優先度(high,middle,low)を明確に記載する
-- ticketIDを明確に記載する
-- この考察に対する確信度を５段階で明確に記載する。(5が最も確信度が高く1が最も低い)
-下記がissueの内容です
-${JSON.stringify(issue)}`;
-};
+export type ActionResult = z.infer<typeof ZActionResult>;

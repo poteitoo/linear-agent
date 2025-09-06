@@ -12,6 +12,16 @@ export const nextActionAgent = new Agent({
 - 優先度(high,middle,low)を明確に記載する
 - ticketIDを明確に記載する
 - この考察に対する確信度を５段階で明確に記載する。(5が最も確信度が高く1が最も低い)
+次のようなスキーマを期待しています
+title: z.string().min(1), // 見出し
+description: z.string().min(1), // 何をするか
+ownerRole: ZOwnerRole, // engineer / customerSuccess
+priority: ZPriority, // high / middle / low
+ticketId: z.string().min(1), // 対象チケットID
+confidence: z.number().int().min(1).max(5), // 確信度 1..5
+rationale: z.string().min(1), // 判断理由
+investigation: ZInvestigation.optional(), // 必要時のみ
+questions: z.array(ZQuestion).min(1).optional(), // 必要時のみ
 `,
   model: anthropic("claude-3-7-sonnet-20250219"),
   memory: new Memory({
