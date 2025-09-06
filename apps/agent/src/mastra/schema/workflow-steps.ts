@@ -1,11 +1,11 @@
 import { z } from "zod";
+import { ClusteringOutputSchema } from "../prompts/create-cluster";
 import { ZActionProposal } from "../prompts/create-next-action";
 import {
   writeFileOutputSchema,
   writtenFileShcema,
 } from "../prompts/write-files";
 import { linearIssueSchema } from "./linear-issue";
-import { ClusteringOutputSchema } from "../prompts/create-cluster";
 
 // Workflow step input schemas
 export const fetchTriageStepInputSchema = z.object({
@@ -64,9 +64,8 @@ export const sendSlackQuestionStepOutputSchema = z.object({
 });
 
 export const clusterHighConfidenceActionsStepInputSchema = z.object({
-  oks: z.array(z.boolean()),
-  slackUrls: z.array(z.string().url()),
   nextActions: z.array(ZActionProposal),
+  writtenFile: writtenFileShcema,
 });
 
 export const clusterHighConfidenceActionsStepOutputSchema = z.object({
