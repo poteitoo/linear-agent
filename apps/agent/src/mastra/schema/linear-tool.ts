@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const linearToolInputSchema = z.object({
   team: z.string().describe("チーム名 (例: Engineering)"),
-  count: z.number().optional().describe("取得するイシューの件数（デフォルト: 20）"),
+  count: z
+    .number()
+    .optional()
+    .describe("取得するイシューの件数（デフォルト: 20）"),
 });
 
 export const linearToolOutputSchema = z.array(

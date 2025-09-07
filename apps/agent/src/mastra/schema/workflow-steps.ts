@@ -10,7 +10,10 @@ import { linearIssueSchema } from "./linear-issue";
 // Workflow step input schemas
 export const fetchTriageStepInputSchema = z.object({
   team: z.string().describe("トリアージを取得するチーム名"),
-  count: z.number().optional().describe("取得するイシューの件数（デフォルト: 20）"),
+  count: z
+    .number()
+    .optional()
+    .describe("取得するイシューの件数（デフォルト: 20）"),
 });
 
 export const fetchTriageStepOutputSchema = z.object({
@@ -86,7 +89,10 @@ export const exportClusteredDocumentStepOutputSchema = z.object({
 // Main workflow schemas
 export const linearTriageWorkflowInputSchema = z.object({
   team: z.string().describe("トリアージを取得するチーム名"),
-  count: z.number().optional().describe("取得するイシューの件数（デフォルト: 20）"),
+  count: z
+    .number()
+    .optional()
+    .describe("取得するイシューの件数（デフォルト: 20）"),
 });
 
 export const linearTriageWorkflowOutputSchema = z.object({
