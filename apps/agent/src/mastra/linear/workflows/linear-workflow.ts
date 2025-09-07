@@ -5,6 +5,8 @@ import { ZActionProposal } from "../../prompts/create-next-action";
 import {
   clusterHighConfidenceActionsStepInputSchema,
   clusterHighConfidenceActionsStepOutputSchema,
+  exportClusteredDocumentStepInputSchema,
+  exportClusteredDocumentStepOutputSchema,
   exportTempFileStepInputSchema,
   exportTempFileStepOutputSchema,
   exportTempFileStepResumeSchema,
@@ -27,9 +29,9 @@ const fetchTriageStep = createStep({
   inputSchema: fetchTriageStepInputSchema,
   outputSchema: fetchTriageStepOutputSchema,
   execute: async ({ inputData, tracingContext, runtimeContext }) => {
-    const { team } = inputData;
+    const { team, count } = inputData;
     const result = await linearTool.execute({
-      context: { team },
+      context: { team, count },
       runtimeContext,
       tracingContext,
     });
@@ -40,7 +42,7 @@ const fetchTriageStep = createStep({
 
 const suggesNextActionsStep = createStep({
   id: "suggest-next-actions",
-  description: "トリアージチケットから次のアクション3つを提案する",
+  description: "トリアージチケットからnext ationを3つずつ提案する",
   inputSchema: suggestNextActionsStepInputSchema,
   outputSchema: suggestNextActionsStepOutputSchema,
   execute: async ({ inputData, mastra }) => {
@@ -149,6 +151,35 @@ const clusterHighConfidenceActionsStep = createStep({
   },
 });
 
+const exportClusteredDocumentStep = createStep({
+  id: "export-clustered-document",
+  description: "クラスタリングしたドキュメントをexportする",
+  inputSchema: exportClusteredDocumentStepInputSchema,
+  resumeSchema: exportTempFileStepResumeSchema,
+  outputSchema: exportClusteredDocumentStepOutputSchema,
+  execute: async ({ inputData, runtimeContext, tracingContext }) => {
+    const { clustering } = inputData;
+    const writtenFiles = await writeFilesTool.execute({
+      context: {
+        baseDirectory: "../../",
+        createDirectories: true,
+        files: [
+          {
+            path: "clustered.json",
+            content: await prettier.format(JSON.stringify(clustering), {
+              parser: "json-stringify",
+            }),
+          },
+        ],
+      },
+      runtimeContext,
+      tracingContext,
+    });
+
+    return { writtenFiles };
+  },
+});
+
 export const linearTriageWorkflow = createWorkflow({
   id: "linear-triage-workflow",
   description:
@@ -161,4 +192,5 @@ export const linearTriageWorkflow = createWorkflow({
   .then(exportTempFileForHumanReviewStep)
   .then(waitForHumanApproveOrFixStep)
   .then(clusterHighConfidenceActionsStep)
+  .then(exportClusteredDocumentStep)
   .commit();

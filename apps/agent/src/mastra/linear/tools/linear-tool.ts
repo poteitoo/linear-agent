@@ -20,11 +20,11 @@ export const linearTool = createTool({
   inputSchema: linearToolInputSchema,
   outputSchema: linearToolOutputSchema,
   execute: async ({ context }) => {
-    return await getTriageIssues(context.team);
+    return await getTriageIssues(context.team, context.count);
   },
 });
 
-async function getTriageIssues(teamKey: string) {
+async function getTriageIssues(teamKey: string, count: number = 20) {
   const teams = await linearClient.teams();
   const team = teams.nodes.find(
     (t) =>
@@ -41,7 +41,7 @@ async function getTriageIssues(teamKey: string) {
       state: { id: { eq: triageState.id } },
       team: { id: { eq: team.id } },
     },
-    first: 20, // pagination size
+    first: count, // pagination size
   });
 
   const allIssues = issues.nodes;
