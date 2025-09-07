@@ -39,3 +39,4 @@ yarn-error.log*
 
 # Wait for human review files
 apps/agent/wait-for-human-review.json
+apps/agent/clustered.json
